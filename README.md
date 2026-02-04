@@ -3,7 +3,7 @@
 ## Problem
 Many teams still run weekly/monthly reporting in spreadsheets: manual exports, copy/paste, inconsistent KPI definitions, and low trust in numbers.
 
-## Solution (Demo)
+## Solution
 This repo shows an end-to-end reporting replacement:
 - Synthetic operational dataset (CSV)
 - Python ETL builds a refreshable SQLite mart
