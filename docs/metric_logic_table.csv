@@ -1,0 +1,7 @@
+metric_name,grain,definition,formula_notes,owner,acceptance_check
+Revenue,order_line,Sum of (quantity * unit_price) for non-cancelled orders,"revenue = SUMX(order_lines, quantity * unit_price) where is_cancelled=0",Analytics,"Compare PBI Revenue vs SQL Revenue for same date range; diff <= 0.1%"
+COGS,order_line,Sum of (quantity * unit_cost) for non-cancelled orders,"cogs = SUMX(order_lines, quantity * unit_cost) where is_cancelled=0",Finance,"Compare PBI COGS vs SQL COGS; diff <= 0.1%"
+Gross Margin,order_line,Revenue - COGS,"gm = revenue - cogs",Finance,"PBI GM equals PBI Revenue - PBI COGS"
+Orders,order,Count of distinct non-cancelled orders,"orders = DISTINCTCOUNT(order_id) where is_cancelled=0",Ops,"PBI Orders equals SQL Orders for same filters"
+On-time Ship Rate,order,Share of orders shipped on/before target date,"on_time = ship_date <= target_ship_date (exclude cancelled)",Ops,"PBI On-time Ship Rate within 0.5% of SQL calc"
+Avg Order Cycle Time (days),order,Average days from order_date to delivery_date,"cycle = AVG(DATEDIFF(order_date, delivery_date)) exclude cancelled, require delivery_date",Ops,"PBI cycle time within 0.2 days of SQL calc"
