@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import List, Dict
 
 import numpy as np
 import pandas as pd
@@ -27,7 +25,9 @@ def _date_range(start: str, end: str) -> pd.DatetimeIndex:
     return pd.date_range(start=pd.to_datetime(start), end=pd.to_datetime(end), freq="D")
 
 
-def _weighted_choice(items: List[str], weights: List[float], size: int, rng: np.random.Generator) -> np.ndarray:
+def _weighted_choice(
+    items: list[str], weights: list[float], size: int, rng: np.random.Generator
+) -> np.ndarray:
     w = np.array(weights, dtype=float)
     w = w / w.sum()
     return rng.choice(items, size=size, replace=True, p=w)
