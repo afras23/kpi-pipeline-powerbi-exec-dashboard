@@ -1,6 +1,7 @@
 import os
 import sqlite3
 
+
 def test_sqlite_mart_exists():
     assert os.path.exists("data/processed/kpi_mart.db"), "Run etl/etl_to_sqlite.py first"
 
