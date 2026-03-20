@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kpi
+      POSTGRES_PASSWORD: kpi
+      POSTGRES_DB: kpi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kpi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://kpi:kpi@postgres:5432/kpi
+      RAW_DATA_DIR: data/raw
+      ENV: production
+      RUN_ETL_ON_STARTUP: "true"
+    volumes:
+      - ./data/raw:/app/data/raw:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
