@@ -26,3 +26,4 @@ data/processed/
 
 # Logs
 *.log
+.github/workflows/
