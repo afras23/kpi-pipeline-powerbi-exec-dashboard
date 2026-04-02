@@ -1,4 +1,5 @@
 """KPI engine: compute metrics from a fact DataFrame using the registry."""
+
 from __future__ import annotations
 
 import pandas as pd

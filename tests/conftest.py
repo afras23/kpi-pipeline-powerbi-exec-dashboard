@@ -1,4 +1,5 @@
 """Shared pytest fixtures."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -23,9 +24,7 @@ def fact_df() -> pd.DataFrame:
         {
             "order_id": ["O1", "O1", "O2", "O3"],
             "order_date": pd.to_datetime(["2024-01-01"] * 4),
-            "delivery_date": pd.to_datetime(
-                ["2024-01-05", "2024-01-05", "2024-01-04", pd.NaT]
-            ),
+            "delivery_date": pd.to_datetime(["2024-01-05", "2024-01-05", "2024-01-04", pd.NaT]),
             "is_cancelled": [0, 0, 0, 1],
             "revenue": [100.0, 50.0, 200.0, 80.0],
             "cogs": [60.0, 30.0, 120.0, 50.0],

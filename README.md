@@ -460,12 +460,13 @@ run("data/raw", engine)
 
 ## 10. CI
 
-Three jobs run on every push to `main` and on pull requests:
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and on pull requests. A single job runs, in order:
 
-| Job | Tool | What runs |
+| Step | Tool | Command |
 |---|---|---|
-| Lint | ruff 0.6.9 | `ruff check .` — E, F, I, UP rules across `app/`, `etl/`, `kpi/`, `tests/` |
-| Type check | mypy 1.11.2 | `mypy app/` — checks the FastAPI application layer |
-| Tests | pytest 8.3.2 | Generates synthetic data, builds SQLite mart, runs all 33 tests |
+| Lint | ruff 0.6.9 | `ruff check .` — E, F, I, UP rules (see `pyproject.toml`) |
+| Format | ruff | `ruff format --check .` |
+| Type check | mypy 1.11.2 | `mypy app/` |
+| Tests | pytest 8.3.2 | After synthetic CSVs and SQLite mart are built, runs the full suite |
 
-The test job seeds the mart before running so that the three integration tests in `test_mart_builds.py` have a populated database available. All other tests use in-memory DataFrames and do not require the mart.
+Before pytest, the workflow runs `etl/generate_synthetic_data.py` and `etl/etl_to_sqlite.py` with `PYTHONPATH=.` so the three integration tests in `test_mart_builds.py` see `data/processed/kpi_mart.db`. All other tests use in-memory DataFrames and do not require the mart.

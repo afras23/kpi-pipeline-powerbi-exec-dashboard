@@ -1,4 +1,5 @@
 """Tests for the config-driven KPI engine."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -65,8 +66,15 @@ def test_compute_by_name_raises_for_unknown_kpi(fact_df: pd.DataFrame) -> None:
 
 def test_empty_dataframe_returns_none() -> None:
     empty = pd.DataFrame(
-        columns=["order_id", "is_cancelled", "revenue", "cogs", "gross_margin",
-                 "on_time_ship", "cycle_time_days"]
+        columns=[
+            "order_id",
+            "is_cancelled",
+            "revenue",
+            "cogs",
+            "gross_margin",
+            "on_time_ship",
+            "cycle_time_days",
+        ]
     )
     assert compute_by_name(empty, "total_revenue") is None
     assert compute_by_name(empty, "order_count") is None

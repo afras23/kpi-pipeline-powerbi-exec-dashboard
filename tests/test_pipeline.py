@@ -1,4 +1,5 @@
 """Tests for ETL transform and data quality layers."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -29,9 +30,7 @@ def test_coerce_dates_ignores_missing_column() -> None:
 
 
 def test_drop_invalid_rows_removes_nulls() -> None:
-    df = pd.DataFrame(
-        {"order_id": ["O1", None, "O3"], "customer_id": ["C1", "C2", "C3"]}
-    )
+    df = pd.DataFrame({"order_id": ["O1", None, "O3"], "customer_id": ["C1", "C2", "C3"]})
     result = drop_invalid_rows(df, ["order_id"])
     assert len(result) == 2
     assert result["order_id"].notna().all()
@@ -171,9 +170,7 @@ def test_quality_duplicate_check_detects_duplicates() -> None:
 
 
 def test_quality_run_all_fails_on_combined_issues() -> None:
-    df = pd.DataFrame(
-        {"order_id": [None, "O1", "O1"], "product_id": ["P1", "P2", "P2"]}
-    )
+    df = pd.DataFrame({"order_id": [None, "O1", "O1"], "product_id": ["P1", "P2", "P2"]})
     report = run_quality_checks(df, required_cols=["order_id"], key_cols=["order_id", "product_id"])
     assert report.passed is False
     assert len(report.issues) == 2

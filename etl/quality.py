@@ -1,4 +1,5 @@
 """Data quality checks: null detection and duplicate identification."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

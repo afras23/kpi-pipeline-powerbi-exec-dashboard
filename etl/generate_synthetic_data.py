@@ -44,13 +44,17 @@ def main() -> None:
     seg_weights = [0.65, 0.25, 0.10]
     customer_ids = [f"C{str(i).zfill(5)}" for i in range(1, cfg.n_customers + 1)]
     customers = []
-    for cid, seg in zip(customer_ids, _weighted_choice(segments, seg_weights, cfg.n_customers, rng)):
+    for cid, seg in zip(
+        customer_ids, _weighted_choice(segments, seg_weights, cfg.n_customers, rng)
+    ):
         customers.append(
             {
                 "customer_id": cid,
                 "customer_name": fake.company(),
                 "segment": seg,
-                "country": _weighted_choice(["UK", "IE", "DE", "FR", "NL"], [0.65, 0.10, 0.10, 0.08, 0.07], 1, rng)[0],
+                "country": _weighted_choice(
+                    ["UK", "IE", "DE", "FR", "NL"], [0.65, 0.10, 0.10, 0.08, 0.07], 1, rng
+                )[0],
                 "created_at": fake.date_between(start_date="-5y", end_date="today").isoformat(),
             }
         )
@@ -61,7 +65,9 @@ def main() -> None:
     cat_weights = [0.40, 0.25, 0.25, 0.10]
     product_ids = [f"P{str(i).zfill(4)}" for i in range(1, cfg.n_products + 1)]
     products = []
-    for pid, cat in zip(product_ids, _weighted_choice(categories, cat_weights, cfg.n_products, rng)):
+    for pid, cat in zip(
+        product_ids, _weighted_choice(categories, cat_weights, cfg.n_products, rng)
+    ):
         base_price = {
             "Consumables": rng.uniform(8, 40),
             "Parts": rng.uniform(15, 120),
@@ -119,7 +125,9 @@ def main() -> None:
     for i in range(cfg.n_orders):
         oid = order_ids[i]
         n_lines = int(line_counts[i])
-        prods = rng.choice(product_ids, size=n_lines, replace=False if n_lines <= len(product_ids) else True)
+        prods = rng.choice(
+            product_ids, size=n_lines, replace=False if n_lines <= len(product_ids) else True
+        )
         qty = rng.integers(1, 15, size=n_lines)
 
         for j in range(n_lines):
@@ -134,7 +142,9 @@ def main() -> None:
                     "quantity": int(qty[j]),
                     "target_ship_date": target_ship_date[i].date().isoformat(),
                     "ship_date": (actual_ship_date[i].date().isoformat() if delivered[i] else None),
-                    "delivery_date": (delivery_date[i].date().isoformat() if delivered[i] else None),
+                    "delivery_date": (
+                        delivery_date[i].date().isoformat() if delivered[i] else None
+                    ),
                     "is_cancelled": int(cancelled[i]),
                 }
             )

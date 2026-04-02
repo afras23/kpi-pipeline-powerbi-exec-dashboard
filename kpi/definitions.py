@@ -3,6 +3,7 @@
 Each KPIDefinition specifies *what* to compute; the engine handles *how*.
 To add a KPI, append an entry to REGISTRY — no engine changes needed.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

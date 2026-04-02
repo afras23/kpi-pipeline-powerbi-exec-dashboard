@@ -1,4 +1,5 @@
 """Standalone SQLite ETL runner — thin CLI wrapper around etl.pipeline."""
+
 from __future__ import annotations
 
 import os

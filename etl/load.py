@@ -1,4 +1,5 @@
 """Load: persist transformed mart tables to the configured database."""
+
 from __future__ import annotations
 
 import logging

@@ -1,4 +1,5 @@
 """Pipeline: orchestrates extract → quality check → transform → load."""
+
 from __future__ import annotations
 
 import logging
