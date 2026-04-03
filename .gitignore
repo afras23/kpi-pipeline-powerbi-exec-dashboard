@@ -18,6 +18,9 @@ htmlcov/
 data/processed/
 *.db
 
+# Raw CSVs are generated (synthetic demo) or supplied by your integration — do not commit extracts.
+data/raw/*.csv
+
 # OS
 .DS_Store
 
@@ -26,5 +29,4 @@ data/processed/
 
 # Logs
 *.log
-.github/workflows/
 venv/

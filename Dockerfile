@@ -19,9 +19,11 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 
 # Copy application source
-COPY app/      app/
-COPY etl/      etl/
-COPY data/raw/ data/raw/
+COPY app/ app/
+COPY etl/ etl/
+
+# Synthetic demo CSVs (not committed) — image is self-contained when no bind mount is used
+RUN mkdir -p data/raw && python etl/generate_synthetic_data.py
 
 USER app
 

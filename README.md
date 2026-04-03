@@ -444,7 +444,7 @@ run("data/raw", engine)
 │   └── runbook_refresh.md        Step-by-step local refresh procedure
 │
 ├── data/
-│   ├── raw/                      Source CSVs (not committed)
+│   ├── raw/                      Source CSVs (`*.csv` gitignored; see `data/raw/README.md`)
 │   └── processed/                SQLite mart output (not committed)
 │
 ├── Dockerfile                    Multi-stage build; non-root runtime user
