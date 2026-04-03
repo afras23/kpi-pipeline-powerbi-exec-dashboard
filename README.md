@@ -473,3 +473,10 @@ run("data/raw", engine)
 | Tests | pytest 8.3.2 | After synthetic CSVs and SQLite mart are built, runs the full suite |
 
 Before pytest, the workflow runs `etl/generate_synthetic_data.py` and `etl/etl_to_sqlite.py` with `PYTHONPATH=.` so the three integration tests in `test_mart_builds.py` see `data/processed/kpi_mart.db`. All other tests use in-memory DataFrames and do not require the mart.
+
+---
+## About
+
+Built by Anesah Fraser — AI automation and agent engineering.
+
+Website: https://prozeolis.co.uk
