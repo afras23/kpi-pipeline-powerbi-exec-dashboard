@@ -1,6 +1,6 @@
 # KPI Pipeline
 
-A backend data pipeline that extracts raw operational data from CSV sources, runs quality checks, transforms it into a structured analytical mart, and exposes KPI metrics via a REST API. The mart is consumed by Power BI for executive reporting.
+A backend data pipeline that extracts raw operational data from CSV sources, runs quality checks, transforms it into a structured analytical mart, and exposes a KPI summary via a REST API. The mart is shaped for analytical workloads and is a natural fit for a BI semantic layer (for example, Power BI) once you connect your reporting tool to the database.
 
 ---
 
@@ -21,12 +21,12 @@ A backend data pipeline that extracts raw operational data from CSV sources, run
 
 ## 1. System Overview
 
-This system ingests raw operational data (customers, products, order lines) and produces a structured dimensional mart and a set of validated KPI metrics. The mart is the source of record for Power BI dashboards used in executive reporting.
+This system ingests raw operational data (customers, products, order lines) and produces a structured dimensional mart. KPIs are defined in one registry and exercised by automated tests; the API returns a fixed subset of those figures for dashboards and services, while the full registry is available in Python against the fact table.
 
 **What it does:**
 
 - Extracts CSV files from a configured raw data directory
-- Validates required fields and checks for duplicate records before transformation
+- Runs quality checks on `order_lines` (required fields, duplicate `(order_id, product_id)` keys) before transformation
 - Transforms order lines into a denormalised fact table with derived metrics
 - Loads four mart tables into either SQLite (local) or Postgres (production) inside a single transaction
 - Exposes aggregated KPI figures via `GET /metrics`
@@ -49,7 +49,7 @@ The reporting workflow this system replaces relied on manually maintained spread
 - **Silent failures.** A change in the upstream data format would produce wrong numbers rather than an error.
 - **Manual effort.** Preparing a weekly KPI pack required several hours of analyst time and was prone to copy-paste errors.
 
-This pipeline addresses those problems by codifying all transformations as deterministic Python functions, defining every KPI in a single versioned registry, and making each run fully reproducible from the same input files.
+This pipeline addresses those problems by codifying transformations as deterministic Python functions, defining every KPI in a single in-code registry, and making each run reproducible from the same input files (you still version inputs and outputs outside this service if you need audit history).
 
 ---
 
@@ -92,10 +92,9 @@ CSV files (data/raw/)
          │
          ▼
   ┌─────────────┐
-  │  KPI Layer  │  kpi/engine.py + app/services/mart.py
-  │             │  Computes metrics from the fact table. Accessible
-  │             │  as a Python function (compute_all) or via the API
-  │             │  (GET /metrics).
+│  KPI Layer  │  kpi/engine.py + app/services/mart.py
+│             │  Registry-driven metrics on the fact table; compute_all(df)
+│             │  in Python, or GET /metrics for a curated JSON summary.
   └─────────────┘
 ```
 
@@ -151,8 +150,8 @@ Rows with `NaT` or null in `order_id`, `customer_id`, `product_id`, or `order_da
 | `revenue` | `quantity × unit_price` | `NaN` if product not matched |
 | `cogs` | `quantity × unit_cost` | `NaN` if product not matched |
 | `gross_margin` | `revenue − cogs` | |
-| `on_time_ship` | `1` if `ship_date ≤ target_ship_date` and neither is `NaT`, else `0` | `0` for cancelled orders |
-| `cycle_time_days` | `(delivery_date − order_date).days` | `NaN` for cancelled orders |
+| `on_time_ship` | `1` if `ship_date` and `target_ship_date` are both present and `ship_date ≤ target_ship_date`, else `0` | Missing ship or target date yields `0`; transform does not read `is_cancelled` |
+| `cycle_time_days` | `(delivery_date − order_date).days` | `NaN` when `delivery_date` is null; transform does not special-case `is_cancelled` |
 
 **5. Date dimension**
 
@@ -194,9 +193,9 @@ Each pipeline run replaces all four tables. There is no incremental or append mo
 
 After load, KPIs are available two ways:
 
-**Python** — `kpi/engine.py`: `compute_all(df)` accepts the `fact_order_line` DataFrame and returns `dict[str, float | None]`.
+**Python** — `kpi/engine.py`: `compute_all(df)` runs every entry in `kpi/definitions.py` `REGISTRY` against the `fact_order_line` DataFrame and returns `dict[str, float | None]`.
 
-**HTTP** — `GET /metrics`: `app/services/mart.py` queries `fact_order_line` directly via SQL and returns a `KPISummary` JSON object.
+**HTTP** — `GET /metrics`: `app/services/mart.py` runs SQL aggregates on `fact_order_line` and returns a `KPISummary` with revenue/COGS/gross margin, distinct order count, mean-based on-time ship rate (%), and mean cycle time. That payload is a **deliberate subset** of the registry (for example, `gross_margin_pct` and `cancellation_rate` are not included today). Add fields by extending `app/models/kpi.py` and `get_kpi_summary()` if you need them on the wire.
 
 ---
 
@@ -234,7 +233,9 @@ class KPIDefinition:
 
 ### 5.3 Adding a KPI
 
-Append a `KPIDefinition` to `REGISTRY` in `kpi/definitions.py`. `compute_all()` iterates the registry at call time — no changes to the engine or API are needed.
+Append a `KPIDefinition` to `REGISTRY` in `kpi/definitions.py`. `compute_all()` picks it up automatically — no engine changes.
+
+To expose the same figure on `GET /metrics`, also extend `KPISummary` / `RevenueMetric` / `OrderMetric` in `app/models/kpi.py` and add the corresponding SQL (or mapping) in `app/services/mart.py`.
 
 Example:
 
@@ -289,12 +290,14 @@ Transform functions are pure: they take DataFrames as input, return new DataFram
 All date fields are parsed with `errors="coerce"`. An unparseable value (empty string, non-ISO format, null) becomes `NaT` rather than raising an exception. The downstream behaviour depends on the field:
 
 - `order_date` → row is dropped (required field)
-- `ship_date` / `delivery_date` → kept; `on_time_ship` is set to `0`, `cycle_time_days` is `NaN`
-- `target_ship_date` → kept; `on_time_ship` is set to `0`
+- `ship_date` / `delivery_date` → if null, `on_time_ship` becomes `0` (ship or target missing) and `cycle_time_days` is `NaN` (no delivery)
+- `target_ship_date` → if null, `on_time_ship` becomes `0`
+
+The bundled synthetic generator clears `ship_date` and `delivery_date` for cancelled orders, so those rows typically behave as above without extra transform logic.
 
 ### 6.5 Cancelled Orders
 
-`is_cancelled` is a binary integer (`0` or `1`). Cancelled orders are retained in the fact table. Most KPIs filter them out via `filter_expr="is_cancelled == 0"`. `cancellation_rate` uses the full dataset.
+`is_cancelled` is a binary integer (`0` or `1`). Cancelled orders are retained in the fact table. The KPI **registry** filters most metrics with `filter_expr="is_cancelled == 0"`; `cancellation_rate` uses the full dataset. The transform step does not zero out metrics based on `is_cancelled`—behaviour comes from date nullability and downstream filters.
 
 ---
 
@@ -310,8 +313,8 @@ All date fields are parsed with `errors="coerce"`. An unparseable value (empty s
 | Empty dataset after filtering | `kpi/engine.py` `compute()` | Returns `None` for all KPIs |
 | Zero denominator in ratio KPI | `kpi/engine.py` `compute()` | Returns `None` |
 | Unknown KPI name | `kpi/engine.py` `compute_by_name()` | Raises `KeyError` |
-| Mart not built before API call | `app/routes/metrics.py` | HTTP 503 with detail "Mart not available — run ETL first" |
-| Database unreachable | `app/routes/health.py` `ready()` | `GET /health/ready` returns HTTP 503 |
+| Mart missing or query failure on `/metrics` | `app/routes/metrics.py` | HTTP 503 with detail `"Mart not available — run ETL first"` (any exception from `get_kpi_summary()` is mapped to this response) |
+| Database not reachable | `app/routes/health.py` `ready()` | HTTP 503 with detail `"Database not ready"` |
 
 ---
 
@@ -337,10 +340,10 @@ python etl/generate_synthetic_data.py
 # Writes to: data/raw/customers.csv, products.csv, order_lines.csv
 ```
 
-Run the ETL:
+Run the ETL (project root must be on `PYTHONPATH` so `etl` imports resolve):
 
 ```bash
-python etl/etl_to_sqlite.py
+PYTHONPATH=. python etl/etl_to_sqlite.py
 # Output: ✅ SQLite mart built at: data/processed/kpi_mart.db
 ```
 
@@ -449,7 +452,7 @@ run("data/raw", engine)
 │
 ├── Dockerfile                    Multi-stage build; non-root runtime user
 ├── docker-compose.yml            Services: app + postgres:16-alpine
-├── .github/workflows/ci.yml      CI: lint (ruff) → typecheck (mypy) → test (pytest)
+├── .github/workflows/ci.yml      CI: ruff check, ruff format --check, mypy, pytest (§10)
 ├── requirements.txt              Runtime dependencies (pinned)
 ├── requirements-dev.txt          Dev/test dependencies: pytest, httpx, ruff, mypy
 ├── pyproject.toml                Tool configuration: ruff, mypy, pytest
